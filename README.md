@@ -92,6 +92,7 @@ If you receive the email, Claude is now connected to 1000+ apps.
   - [App Automation via Composio](#app-automation-via-composio)
 - [Getting Started](#getting-started)
 - [Creating Skills](#creating-skills)
+- [Testing Skills](#testing-skills)
 - [Contributing](#contributing)
 - [Resources](#resources)
 - [License](#license)
@@ -433,6 +434,60 @@ Detailed description of the skill's purpose and capabilities.
 - Test across Claude.ai, Claude Code, and API
 - Document prerequisites and dependencies
 - Include error handling guidance
+
+## Testing Skills
+
+A skill that works in one conversation can quietly fail in the next. Because skills load progressively, the agent decides *whether* to load yours from the name and description alone — so testing has to cover discovery, not just execution.
+
+### Test Plan Checklist
+
+Work through these stages before publishing or submitting a skill:
+
+| Stage | What to verify | Pass criteria |
+| --- | --- | --- |
+| Metadata | `SKILL.md` frontmatter parses; `name` and `description` present | Skill shows up in the agent's available-skills list |
+| Discovery | Agent loads the skill unprompted from a natural request | Loads on relevant asks, stays dormant on unrelated ones |
+| Happy path | The primary use case, end to end | Output matches the documented example |
+| Edge cases | Empty input, oversized input, wrong file type, missing dependency | Fails clearly instead of guessing |
+| Isolation | Run with no other skills installed | No hidden reliance on another skill's context |
+| Interference | Run alongside skills with overlapping descriptions | The right skill wins; no double-loading |
+| Cross-platform | Claude.ai, Claude Code, API | Same behavior, or the differences are documented |
+| Regression | Re-run the cases above after editing `SKILL.md` | Previously passing cases still pass |
+
+### Testing Discovery
+
+Discovery is the stage most skills fail, and the one authors skip. The agent never sees your instructions unless the description convinces it to load them.
+
+Write three prompts per skill and run each in a fresh session:
+
+1. **Direct** — names the task in your own vocabulary ("extract the tables from this PDF"). Should load.
+2. **Indirect** — describes the goal without your keywords ("I need the numbers out of this report"). Should still load.
+3. **Adjacent** — plausibly related but out of scope ("summarize this PDF"). Should *not* load.
+
+If the indirect prompt misses, the description is too narrow. If the adjacent prompt loads, it's too broad. Fix the description, not the instructions.
+
+### Organizing Test Cases
+
+Keep fixtures and expected outputs next to the skill so anyone can re-run them:
+
+```
+skill-name/
+├── SKILL.md
+├── scripts/
+└── tests/
+    ├── cases.md           # Prompts to run, with expected behavior
+    ├── fixtures/          # Sample inputs (small, committed)
+    └── expected/          # Reference outputs to diff against
+```
+
+`cases.md` can stay plain prose — one heading per case, the prompt verbatim, and what a correct response looks like. The value is that the next person editing the skill knows what "still working" means.
+
+### Before You Ship
+
+- Run the checklist above on a clean install, not your working session
+- Confirm every script the skill calls exists and is executable
+- Check that failure messages tell the user what to do next
+- Note any platform-specific behavior in the skill's README or frontmatter description
 
 ## Contributing
 
